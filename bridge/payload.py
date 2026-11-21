@@ -24,6 +24,18 @@ def should_forward(message: Any, config: Config) -> bool:
     return True
 
 
+def _role_ids(message: Any) -> list[str]:
+    """IDs of the author's guild roles, without @everyone.
+
+    Discord sends the author's roles with each new guild message, so no extra
+    intent or API call is needed. @everyone (whose ID is the guild ID) is left
+    out because every member has it. A plain User with no guild membership data
+    has no `roles`, which gives an empty list.
+    """
+    roles = getattr(message.author, "roles", [])
+    return [str(role.id) for role in roles if role.id != message.guild.id]
+
+
 def build_event(message: Any, event_type: str = "message_create") -> dict[str, Any]:
     """Build a plain JSON-serialisable dict describing the message."""
     channel = message.channel
@@ -42,6 +54,7 @@ def build_event(message: Any, event_type: str = "message_create") -> dict[str, A
             "username": message.author.name,
             "display_name": message.author.display_name,
             "bot": message.author.bot,
+            "role_ids": _role_ids(message),
         },
         "content": message.content,
         "attachments": [

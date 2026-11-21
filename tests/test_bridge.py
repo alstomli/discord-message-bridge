@@ -16,12 +16,18 @@ from bridge.payload import build_event, should_forward
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples"))
 
 
-def make_message(*, bot=False, guild_id=1, channel_id=10, parent_id=None, guild=True):
+def make_message(
+    *, bot=False, guild_id=1, channel_id=10, parent_id=None, guild=True, role_ids=(300, 301)
+):
+    author = SimpleNamespace(id=5, name="alice", display_name="Alice", bot=bot)
+    if role_ids is not None:  # None: a plain User with no guild membership data
+        # Like discord.py's Member.roles: @everyone (id == guild id) comes first.
+        author.roles = [SimpleNamespace(id=r) for r in (guild_id, *role_ids)]
     return SimpleNamespace(
         id=999,
         guild=SimpleNamespace(id=guild_id, name="My Server") if guild else None,
         channel=SimpleNamespace(id=channel_id, name="general", parent_id=parent_id),
-        author=SimpleNamespace(id=5, name="alice", display_name="Alice", bot=bot),
+        author=author,
         content="hello world",
         attachments=[
             SimpleNamespace(
@@ -98,10 +104,16 @@ def test_build_event_shape():
     assert e["message_id"] == "999"
     assert e["channel"] == {"id": "10", "name": "general", "parent_id": None}
     assert e["author"]["display_name"] == "Alice"
+    assert e["author"]["role_ids"] == ["300", "301"]
     assert e["content"] == "hello world"
     assert e["attachments"][0]["url"] == "https://cdn/a.png"
     assert e["reply_to_message_id"] == "123"
     assert e["created_at"] == "2026-11-21T12:00:00+00:00"
+
+
+def test_build_event_author_without_membership_has_no_role_ids():
+    e = build_event(make_message(role_ids=None))
+    assert e["author"]["role_ids"] == []
 
 
 # --- forwarder against a real HTTP server -------------------------------------

@@ -61,7 +61,10 @@ Each message is POSTed as `application/json`:
   "message_id": "1310000000000000000",
   "guild":   { "id": "1300000000000000000", "name": "My Server" },
   "channel": { "id": "1300000000000000001", "name": "general", "parent_id": null },
-  "author":  { "id": "1200000000000000000", "username": "alice", "display_name": "Alice", "bot": false },
+  "author":  {
+    "id": "1200000000000000000", "username": "alice", "display_name": "Alice", "bot": false,
+    "role_ids": ["1300000000000000010", "1300000000000000011"]
+  },
   "content": "hello world",
   "attachments": [
     { "filename": "a.png", "url": "https://cdn.discordapp.com/...", "content_type": "image/png", "size": 12345 }
@@ -73,6 +76,8 @@ Each message is POSTed as `application/json`:
 ```
 
 IDs are strings because Discord snowflakes are too large for a JavaScript number. `channel.parent_id` is set when the message is in a thread.
+
+`author.role_ids` lists the IDs of the author's roles in the server, so your program can check for a role (for example `@Support`) without calling Discord. Discord sends these roles with every new message, so no extra privileged intent is needed. `@everyone` is left out because every member has it. The list is empty (`[]`) when Discord sends no membership data for the author.
 
 Your program should return any 2xx status to acknowledge the message. Return 5xx if you want the bot to retry.
 
